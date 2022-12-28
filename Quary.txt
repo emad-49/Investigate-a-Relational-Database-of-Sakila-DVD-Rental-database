@@ -1,0 +1,126 @@
+/* Q1 : Create a query that lists each movie, 
+the film category it is classified in, 
+and the number of times it has been rented out? 
+
+*/
+
+SELECT 
+  c.name "Category name", 
+  count(re.customer_id) 
+FROM
+  film f 
+  join Inventory inv ON f.film_id = inv.film_id 
+  join rental re ON re.inventory_id = inv.inventory_id 
+  join film_category fc ON f.film_id = fc.film_id 
+  join category c ON c.category_id = fc.category_id 
+GROUP BY 
+  c.name 
+  RDER BY 
+  c.name, 
+  f.title;
+
+/* 
+
+  Q2 : Can you provide a table with the movie titles 
+  and divide them into 4 levels (
+    first_quarter, 
+    second_quarter, 
+    third_quarter, 
+    and final_quarter
+  ) based on the quartiles (25 %, 50 %, 75 %) of the rental duration for movies across all categories? 
+
+*/
+
+SELECT 
+  c.name, 
+  f.rental_duration, 
+  count(f.title),
+  NTILE(4) OVER (
+    ORDER BY 
+      f.rental_duration
+  ) AS standard_quartile 
+FROM 
+  film_category fc 
+  JOIN category c ON c.category_id = fc.category_id 
+  JOIN film f ON f.film_id = fc.film_id 
+WHERE 
+  c.name IN (
+    'Animation', 'Children', 'Classics', 
+    'Comedy', 'Family', 'Music'
+  ) 
+GROUP BY  f.rental_duration,c.name
+
+ORDER BY 
+  c.name;
+
+/*   
+  Q3 : provide a table with the family - friendly film category, 
+  each of the quartiles, 
+  and the corresponding count of movies within each combination of film category for each corresponding rental duration category 
+
+
+*/
+
+SELECT 
+  category_name, 
+  quartiles, 
+  COUNT(category_name) 
+FROM 
+  (
+    SELECT 
+      c.name category_name, 
+      NTILE(4) OVER (
+        ORDER BY 
+          f.rental_duration
+      ) AS quartiles 
+    FROM 
+      film f 
+      JOIN film_category fc ON f.film_id = fc.film_id 
+      JOIN category c ON c.category_id = fc.category_id 
+    WHERE 
+      c.name IN (
+        'Animation', 'Children', 'Classics', 
+        'Comedy', 'Family', 'Music'
+      )
+  ) t1 
+GROUP BY 
+  category_name, 
+  quartiles 
+ORDER BY 
+  category_name, 
+  quartiles;
+
+
+/* 
+Q4 : provide a table with the amount that the customer spent on family - friendly film category? */
+SELECT 
+  category_name, 
+  SUM(Amount_number),quartiles
+FROM 
+  (
+    SELECT 
+      p.amount Amount_number, 
+      c.name category_name, 
+      NTILE(4) OVER (
+        ORDER BY 
+          f.rental_duration
+      ) AS quartiles 
+    FROM 
+      film f 
+      JOIN film_category fc ON f.film_id = fc.film_id 
+      JOIN category c ON c.category_id = fc.category_id 
+      join Inventory inv ON f.film_id = inv.film_id 
+      join rental re 
+      join payment p ON p.rental_id = re.rental_id ON re.inventory_id = inv.inventory_id 
+    WHERE 
+      c.name IN (
+        'Animation', 'Children', 'Classics', 
+        'Comedy', 'Family', 'Music'
+      )
+  ) t1 
+GROUP BY 
+  category_name, 
+  quartiles 
+ORDER BY 
+  category_name, 
+  quartiles;
